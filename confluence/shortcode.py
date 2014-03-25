@@ -5,7 +5,7 @@ import struct
 
 logger = logging.getLogger('confluence.shortcode')
 
-def url2id(shortcode):
+def code2id(shortcode):
     try:
         decoded = array.array('b', base64.b64decode(shortcode))
         logger.debug("Decoded %s into %s", shortcode, decoded)
@@ -13,10 +13,10 @@ def url2id(shortcode):
         logger.debug("Ensuring length of 8: %s", decoded)
         return struct.unpack_from('L', decoded)[0]
     except (struct.error, TypeError) as e:
-        logger.exception("Failed to decode")
+        logger.exception("Failed to decode %s", shortcode)
         raise ValueError('Unable to decode shortcode into id number')
 
-def id2url(page_id):
+def id2code(page_id):
     try:
         b64 = base64.b64encode(array.array('b',
                                            struct.pack('L', long(page_id))))
