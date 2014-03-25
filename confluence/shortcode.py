@@ -3,7 +3,7 @@ import base64
 import logging
 import struct
 
-logger = logging.getLogger('confluence.tinyurl')
+logger = logging.getLogger('confluence.shortcode')
 
 def url2id(shortcode):
     try:
@@ -14,7 +14,7 @@ def url2id(shortcode):
         return struct.unpack_from('L', decoded)[0]
     except (struct.error, TypeError) as e:
         logger.exception("Failed to decode")
-        raise ValueError('Failed to decode shortcode into pageid')
+        raise ValueError('Unable to decode shortcode into id number')
 
 def id2url(page_id):
     try:
@@ -23,4 +23,4 @@ def id2url(page_id):
         return b64.rstrip('A=')
     except struct.error as e:
         logger.exception("Failed to encode %d", page_id)
-        raise ValueError('page_id too large')
+        raise ValueError('Unable to encode as shortcode: id too large')
