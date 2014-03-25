@@ -44,6 +44,9 @@ class ConfluenceError(Exception):
 class InvalidSessionException(ConfluenceError):
     pass
 
+class RemoteException(ConfluenceError):
+    pass
+
 class Session:
     def __init__(self, host, **kwargs):
         self._host = host
