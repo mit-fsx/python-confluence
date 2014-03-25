@@ -47,6 +47,9 @@ class InvalidSessionException(ConfluenceError):
 class RemoteException(ConfluenceError):
     pass
 
+class AuthenticationFailedException(ConfluenceError):
+    pass
+
 class Session:
     def __init__(self, host, **kwargs):
         self._host = host
@@ -68,6 +71,7 @@ class Session:
         self.logger = logging.getLogger('confluence.session')
 
     def do(self, method, *margs, **kwargs):
+        self.logger.debug('Calling {0}({1})'.format(method, margs))
         args = list(margs)
         if kwargs.get('auth', True):
             if self._token is None:
@@ -118,7 +122,16 @@ class Session:
         return self._getPage(space_key, page_title)
 
     def renderContent(self, **kwargs):
-        spaceKey = kwargs.get('space_key', '')
-        pageId = kwargs.get('page_id', '')
+        space_key = kwargs.get('space_key', '')
+        page_id = kwargs.get('page_id', '')
         content = kwargs.get('content', '')
-        rendered = self.do('renderContent', spaceKey, pageId, content)
+        parameters = kwargs.get('parameters', {})
+        style = kwargs.get('style', None)
+        if style is not None:
+            if 'style' in parameters:
+                raise ValueError("Cannot specify 'style' as both a keyword "
+                                 "argument and in 'parameters'")
+            parameters['style'] = style
+        rendered = self.do('renderContent',
+                           space_key, page_id, content, parameters)
+        return rendered
