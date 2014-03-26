@@ -28,6 +28,7 @@ class ConfluenceError(Exception):
 
     @staticmethod
     def from_fault(fault):
+        print fault.faultString
         if fault.faultString.startswith('java.lang.NoSuchMethodException'):
             return ConfluenceError('No such method')
         match = ConfluenceError.rpc_exception.match(fault.faultString)
@@ -135,3 +136,29 @@ class Session:
         rendered = self.do('renderContent',
                            space_key, page_id, content, parameters)
         return rendered
+
+    def getLabelsById(self, content_id):
+        content_id = confluence_long(content_id)
+        return [Label(x) for x in self.do('getLabelsById', content_id)]
+
+    def getLabelContentById(self, label_id):
+        # These are secretly SearchResults.  Thanks, Confluence!
+        return [SearchResult(x) for x in self.do('getLabelContentById',
+                                                 confluence_long(label_id))]
+
+    def getLabelContentByName(self, label_name):
+        # These are secretly SearchResults.  Thanks, Confluence!
+        return [SearchResult(x) for x in self.do('getLabelContentByName',
+                                                 label_name)]
+
+    def getLabelsByDetail(self, **kwargs):
+        label_name = kwargs.get('label_name', '')
+        namespace = kwargs.get('namespace', '')
+        space_key = kwargs.get('space_key', '')
+        owner = kwargs.get('owner', '')
+        return [Label(x) for x in 
+                self.do('getLabelsByDetail', label_name, namespace,
+                        space_key, owner)]
+
+    def addLabelByName(self, label_name, object_id):
+        return self.do('addLabelByName', label_name, confluence_long(object_id))
