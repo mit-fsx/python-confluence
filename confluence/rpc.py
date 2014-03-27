@@ -1,4 +1,5 @@
 import logging
+import posixpath
 import re
 import sys
 import urlparse
@@ -51,6 +52,9 @@ class RemoteException(ConfluenceError):
 class AuthenticationFailedException(ConfluenceError):
     pass
 
+class NotPermittedException(ConfluenceError):
+    pass
+
 class Session:
     def __init__(self, host, **kwargs):
         self._host = host
@@ -70,6 +74,7 @@ class Session:
             use_datetime=True)
         self._token = None
         self.logger = logging.getLogger('confluence.session')
+        self._server_info = None
 
     def do(self, method, *margs, **kwargs):
         self.logger.debug('Calling {0}({1})'.format(method, margs))
@@ -103,9 +108,19 @@ class Session:
             self._token = None
         return rv
 
+    @property
+    def server_info(self):
+        if self._server_info is None:
+            self._server_info = self.getServerInfo()
+        return self._server_info
+
+    @property
+    def base_url(self):
+        return self.server_info.baseUrl
+    
     @autorenew
     def getServerInfo(self):
-        return self.do('getServerInfo')
+        return ServerInfo(self.do('getServerInfo'))
 
     @autorenew
     def getSpaces(self):
@@ -114,7 +129,7 @@ class Session:
     @autorenew
     def _getPage(self, *args):
         return Page(self.do('getPage', *args))
-
+    
     def getPageById(self, page_id):
         # This is secretly a String, despite what the API says.
         return self._getPage(str(int(page_id)))
@@ -122,6 +137,7 @@ class Session:
     def getPageByTitle(self, space_key, page_title):
         return self._getPage(space_key, page_title)
 
+    @autorenew
     def renderContent(self, **kwargs):
         space_key = kwargs.get('space_key', '')
         page_id = kwargs.get('page_id', '')
@@ -137,20 +153,24 @@ class Session:
                            space_key, page_id, content, parameters)
         return rendered
 
+    @autorenew
     def getLabelsById(self, content_id):
         content_id = confluence_long(content_id)
         return [Label(x) for x in self.do('getLabelsById', content_id)]
 
+    @autorenew
     def getLabelContentById(self, label_id):
         # These are secretly SearchResults.  Thanks, Confluence!
         return [SearchResult(x) for x in self.do('getLabelContentById',
                                                  confluence_long(label_id))]
 
+    @autorenew
     def getLabelContentByName(self, label_name):
         # These are secretly SearchResults.  Thanks, Confluence!
         return [SearchResult(x) for x in self.do('getLabelContentByName',
                                                  label_name)]
 
+    @autorenew
     def getLabelsByDetail(self, **kwargs):
         label_name = kwargs.get('label_name', '')
         namespace = kwargs.get('namespace', '')
@@ -160,5 +180,14 @@ class Session:
                 self.do('getLabelsByDetail', label_name, namespace,
                         space_key, owner)]
 
+    @autorenew
     def addLabelByName(self, label_name, object_id):
         return self.do('addLabelByName', label_name, confluence_long(object_id))
+
+    def make_short_url(self, shortcode):
+        # Doing this with urlparse is harder than it needs to be, since
+        # the baseurl contains a location and component, whereas we really
+        # just want to concatenate and dedup any slashes
+        # This is _slightly_ better than abusing str.format
+        # and str.strip(), but not by much
+        return posixpath.join(self.base_url, 'x', shortcode)

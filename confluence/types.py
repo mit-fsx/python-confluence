@@ -53,3 +53,6 @@ class Label(DataObject):
 
 class SearchResult(DataObject):
     pass
+
+class ServerInfo(DataObject):
+    pass
