@@ -7,7 +7,11 @@ logger = logging.getLogger('confluence.shortcode')
 
 def code2id(shortcode):
     try:
-        decoded = array.array('b', base64.b64decode(shortcode))
+        padding = ''
+        # This won't work with wide characters.  We don't care.
+        if len(shortcode) % 4 != 0:
+            padding = ''.join(['='] * (4 - (len(shortcode) % 4)))
+        decoded = array.array('b', base64.b64decode(shortcode + padding))
         logger.debug("Decoded %s into %s", shortcode, decoded)
         decoded.fromlist([0] * (8 - len(decoded)))
         logger.debug("Ensuring length of 8: %s", decoded)
