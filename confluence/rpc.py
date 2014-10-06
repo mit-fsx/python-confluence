@@ -182,6 +182,8 @@ class Session:
 
     @autorenew
     def addLabelByName(self, label_name, object_id):
+        if not Label.valid_name(label_name):
+            raise ValueError("Label name contains invalid characters")
         return self.do('addLabelByName', label_name, confluence_long(object_id))
 
     def make_short_url(self, shortcode):
